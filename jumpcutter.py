@@ -93,7 +93,7 @@ def createPath(s):
     try:
         os.mkdir(s)
     except OSError:  
-        assert False, "Creation of the directory %s failed. (The TEMP folder may already exist. Delete or rename it, and try again.)"
+        assert False, "Creation of the directory %s failed. (The folder may already exist. Delete or rename it, and try again.)"
 
 parser = argparse.ArgumentParser(description='Modifies a video file to play at different speeds when there is sound vs. silence.')
 parser.add_argument('--input_file', type=str,  help='the video file you want modified')
