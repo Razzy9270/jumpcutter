@@ -19,6 +19,10 @@ from PIL import Image
 
 # This is a forked version of the original JumpCutter made by carykh.
 
+def convertBlankToUnspecified(string):
+    unspecified = string.replace("", "Unspecified")
+    return unspecified
+
 def clear():
     if os.name == 'nt': 
         _ = os.system('cls') 
@@ -76,8 +80,7 @@ class chooseOutputFile():
     print("You can leave this blank if you want it to use the default '[INPUT FILE]_MODIFIED' name.")
     print("\n")
 
-outputFileRaw = input(" > ")
-outputFile = str(outputFileRaw)
+outputFile = input(" > ")
 
 class checkSilentThreshold():
     clear()
@@ -87,8 +90,7 @@ class checkSilentThreshold():
     print("You can leave this blank if you want it to use the default value (0.05).")
     print("\n")
 
-silentThresholdRaw = input(" > ")
-silentThreshold = float(silentThresholdRaw)
+silentThreshold = convertBlankToUnspecified(input(" > "))
 
 class checkSoundedSpeed():
     clear()
@@ -97,8 +99,7 @@ class checkSoundedSpeed():
     print("Default value is 1, meaning the sounded video parts will be played back at normal speed; minimum is 0.5, and maximum is 999999.")
     print("\n")
 
-soundedSpeedRaw = input(" > ")
-soundedSpeed = float(soundedSpeedRaw)
+soundedSpeed = convertBlankToUnspecified(input(" > "))
 
 class checkSilentSpeed():
     clear()
@@ -107,8 +108,7 @@ class checkSilentSpeed():
     print("Default value is 5, meaning the silent video parts will be played back at 5 times the normal speed; minimum is 0.5, and maximum is 999999.")
     print("\n")
 
-silentSpeedRaw = input(" > ")
-silentSpeed = float(silentSpeedRaw)
+silentSpeed = convertBlankToUnspecified(input(" > "))
 
 class checkFrameMargin():
     clear()
@@ -117,8 +117,7 @@ class checkFrameMargin():
     print("Default value is 3, minimum is 0, and maximum is 60.")
     print("\n")
 
-frameMarginRaw = input(" > ")
-frameMargin = int(frameMarginRaw)
+frameMargin = convertBlankToUnspecified(input(" > "))
 
 class checkSampleRate():
     clear()
@@ -127,8 +126,7 @@ class checkSampleRate():
     print("Default value is 44100.")
     print("\n")
 
-videoSampleRateRaw = input(" > ")
-videoSampleRate = int(videoSampleRateRaw)
+videoSampleRate = convertBlankToUnspecified(input(" > "))
 
 class checkFrameRate():
     clear()
@@ -137,8 +135,7 @@ class checkFrameRate():
     print("Default value is 30.")
     print("\n")
 
-videoFrameRateRaw = input(" > ")
-videoFrameRate = int(videoFrameRateRaw)
+videoFrameRate = convertBlankToUnspecified(input(" > "))
 
 class checkFrameQuality():
     clear()
@@ -147,11 +144,10 @@ class checkFrameQuality():
     print("Select a number from 1 (Highest quality) to 31 (Lowest quality); default value is 3.")
     print("\n")
 
-videoFrameQualityRaw = input(" > ")
-videoFrameQuality = int(videoFrameQualityRaw)
+videoFrameQuality = convertBlankToUnspecified(input(" > "))
 
 def checkSilentThresholdInput():
-    if silentThreshold == None:
+    if silentThreshold == "Unspeficied":
         return 0.05
     elif silentThreshold < 0:
         return 0
@@ -159,7 +155,7 @@ def checkSilentThresholdInput():
         return 1
 
 def checkSoundedSpeedInput():
-    if soundedSpeed == None:
+    if soundedSpeed == "Unspecified":
         return 1
     elif soundedSpeed < 0.5:
         return 0.5
@@ -167,7 +163,7 @@ def checkSoundedSpeedInput():
         return 999999
 
 def checkSilentSpeedInput():
-    if silentSpeed == None:
+    if silentSpeed == "Unspecified":
         return 5
     elif silentSpeed < 0.5:
         return 0.5
@@ -175,7 +171,7 @@ def checkSilentSpeedInput():
         return 999999
 
 def checkFrameMarginInput():
-    if frameMargin == None:
+    if frameMargin == "Unspecified":
         return 3
     elif frameMargin < 0:
         return 0
@@ -183,7 +179,7 @@ def checkFrameMarginInput():
         return 60
 
 def checkSampleRateInput():
-    if videoSampleRate == None:
+    if videoSampleRate == "Unspecified":
         return 44100
     elif videoSampleRate < 22050:
         return 22050
@@ -191,7 +187,7 @@ def checkSampleRateInput():
         return 48000
 
 def checkFrameRateInput():
-    if videoFrameRate == None:
+    if videoFrameRate == "Unspecified":
         return 30
     elif videoFrameRate < 1:
         return 1
@@ -199,7 +195,7 @@ def checkFrameRateInput():
         return 60
 
 def checkFrameQualityInput():
-    if videoFrameQuality == None:
+    if videoFrameQuality == "Unspecified":
         return 3
     elif videoFrameQuality < 1:
         return 1
