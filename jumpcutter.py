@@ -1,12 +1,12 @@
-import os
+import numpy as np
+import subprocess
 import argparse
 import random
-import subprocess
-import numpy as np
-import re
-import math
 import shutil
 import time
+import math
+import os
+import re
 
 from audiotsm.io.wav import WavReader, WavWriter
 from shutil import copyfile, rmtree
@@ -17,13 +17,228 @@ from pytube import YouTube
 from pathlib import Path
 from PIL import Image
 
-# Forked repository of original jumpcutter
+# This is a forked version of the original JumpCutter made by carykh.
 
 def clear():
     if os.name == 'nt': 
         _ = os.system('cls') 
     else: 
         _ = os.system('clear')
+
+def downloadFile(url):
+    name = YouTube(url).streams.first().download()
+    newname = name.replace(' ','_')
+    os.rename(name, newname)
+    print("Downloaded specified YouTube video.")
+    print(f"Located in: {name}")
+    time.sleep(5)
+    return newname
+
+def inputToOutputFilename(filename):
+    dotIndex = filename.rfind(".")
+    return filename[:dotIndex]+"_MODIFIED"+filename[dotIndex:]
+
+# frameRate = args.frame_rate
+# SAMPLE_RATE = args.sample_rate
+# SILENT_THRESHOLD = args.silent_threshold
+# FRAME_SPREADAGE = args.frame_margin
+# NEW_SPEED = [args.silent_speed, args.sounded_speed]
+# if args.url != None:
+#     INPUT_FILE = downloadFile(args.url)
+# else:
+#     INPUT_FILE = args.input_file
+# URL = args.url
+# FRAME_QUALITY = args.frame_quality
+
+class introductionMessage():
+    clear()
+    print("Welcome to JumpCutter!")
+    print("You will have to specify a few things before continuing.")
+    time.sleep(5)
+
+class chooseOption():
+    clear()
+    print("Step 1: Please choose a jumpcutting option.")
+    print("\n")
+    print("1. Specified Video: Automatically jumpcuts a input file specified by the user.\n2. Specified YouTube Video: Automatically downloads the YouTube Video specified using the URL specified by the user.")
+    print("\n")
+
+choice = input("Choose an option: ")
+
+def checkSelection():
+    if choice == "1":
+        clear()
+        print("Step 2: Specify the input file to jumpcut; this must end with a '.mp4' at the end.")
+        print("\n")
+        file = input(" > ")
+        return file
+    elif choice == "2":
+        clear()
+        print("Step 2: Specify the YouTube Video to jumpcut; this must be a URL.")
+        print("\n")
+        url = input(" > ")
+        pathFile = downloadFile(url)
+        return pathFile
+
+selectionChoice = checkSelection()
+
+class chooseOutputFile():
+    clear()
+    print("Step 3: Specify the output file name.")
+    print("You can leave this blank if you want it to use the default '[INPUT FILE]_MODIFIED' name.")
+    print("\n")
+
+outputFileRaw = input(" > ")
+outputFile = str(outputFileRaw)
+
+class checkSilentThreshold():
+    clear()
+    print("Step 4: Specify the silent threshold.")
+    print("The volume amount that frames' audio needs to surpass to be considered as 'sounded'.")
+    print("Please specify an integer between 0 (Silence) to 1 (Maximum volume).")
+    print("You can leave this blank if you want it to use the default value (0.05).")
+    print("\n")
+
+silentThresholdRaw = input(" > ")
+silentThreshold = int(silentThresholdRaw)
+
+class checkSoundedSpeed():
+    clear()
+    print("Step 5: Specify the sounded speed.")
+    print("This is the speed that sounded parts of your specified video should be played at.")
+    print("Default value is 1, meaning the sounded video parts will be played back at normal speed; minimum is 0.5, and maximum is 999999.")
+    print("\n")
+
+soundedSpeedRaw = input(" > ")
+soundedSpeed = int(soundedSpeedRaw)
+
+class checkSilentSpeed():
+    clear()
+    print("Step 6: Specify the silent speed.")
+    print("This is the speed that silent parts of your specified video should be played at.")
+    print("Default value is 5, meaning the silent video parts will be played back at 5 times the normal speed; minimum is 0.5, and maximum is 999999.")
+    print("\n")
+
+silentSpeedRaw = input(" > ")
+silentSpeed = int(silentSpeedRaw)
+
+class checkFrameMargin():
+    clear()
+    print("Step 7: Specify the frame margin.")
+    print("How many frames on either the side of speech should be included?")
+    print("Default value is 3, minimum is 0, and maximum is 60.")
+    print("\n")
+
+frameMarginRaw = input(" > ")
+frameMargin = int(frameMarginRaw)
+
+class checkSampleRate():
+    clear()
+    print("Step 8: Specify the sample rate.")
+    print("Specify the sample rate of the input and output videos.")
+    print("Default value is 44100.")
+    print("\n")
+
+videoSampleRateRaw = input(" > ")
+videoSampleRate = int(videoSampleRateRaw)
+
+class checkFrameRate():
+    clear()
+    print("Step 9: Specify the frame rate.")
+    print("Specify the frame rate of the input and output videos.")
+    print("Default value is 30.")
+    print("\n")
+
+videoFrameRateRaw = input(" > ")
+videoFrameRate = int(videoFrameRateRaw)
+
+class checkFrameQuality():
+    clear()
+    print("Step 10: Specify the frame quality.")
+    print("Specify the quality of frames to be extracted from the input video.")
+    print("Select a number from 1 (Highest quality) to 31 (Lowest quality); default value is 3.")
+    print("\n")
+
+videoFrameQualityRaw = input(" > ")
+videoFrameQuality = int(videoFrameQualityRaw)
+
+def checkSilentThresholdInput():
+    if silentThreshold == None:
+        return 0.05
+    elif silentThreshold < 0:
+        return 0
+    elif silentThreshold > 1:
+        return 1
+
+def checkSoundedSpeedInput():
+    if soundedSpeed == None:
+        return 1
+    elif soundedSpeed < 0.5:
+        return 0.5
+    elif soundedSpeed > 999999:
+        return 999999
+
+def checkSilentSpeedInput():
+    if silentSpeed == None:
+        return 5
+    elif silentSpeed < 0.5:
+        return 0.5
+    elif silentSpeed > 999999:
+        return 999999
+
+def checkFrameMarginInput():
+    if frameMargin == None:
+        return 3
+    elif frameMargin < 0:
+        return 0
+    elif frameMargin > 60:
+        return 60
+
+def checkSampleRateInput():
+    if videoSampleRate == None:
+        return 44100
+    elif videoSampleRate < 22050:
+        return 22050
+    elif videoSampleRate > 48000:
+        return 48000
+
+def checkFrameRateInput():
+    if videoFrameRate == None:
+        return 30
+    elif videoFrameRate < 1:
+        return 1
+    elif videoFrameRate > 60:
+        return 60
+
+def checkFrameQualityInput():
+    if videoFrameQuality == None:
+        return 3
+    elif videoFrameQuality < 1:
+        return 1
+    elif videoFrameQuality > 31:
+        return 31
+
+frameRate = float(checkFrameRateInput())
+SAMPLE_RATE = float(checkSampleRateInput())
+SILENT_THRESHOLD = float(checkSilentThresholdInput())
+FRAME_SPREADAGE = float(checkFrameMarginInput())
+NEW_SPEED = [float(checkSilentSpeedInput()), float(checkSoundedSpeedInput())]
+INPUT_FILE = str(selectionChoice)
+FRAME_QUALITY = int(checkFrameQualityInput())
+
+assert INPUT_FILE != None , "Please specify an input file."
+    
+if len(outputFile) >= 1:
+    OUTPUT_FILE = str(outputFile)
+else:
+    OUTPUT_FILE = str(inputToOutputFilename(INPUT_FILE))
+
+time.sleep(2.5)
+
+clear()
+
+print("You have finished setting up things.")
+input("Press the ENTER key to start.")
 
 class removeOriginalDirectory():
     clear()
@@ -60,15 +275,6 @@ class removeNewDirectory():
         time.sleep(2.5)
         clear()
 
-def downloadFile(url):
-    name = YouTube(url).streams.first().download()
-    newname = name.replace(' ','_')
-    os.rename(name, newname)
-    print("Downloaded specified YouTube video.")
-    print(f"Located in: {name}")
-    time.sleep(5)
-    return newname
-
 def getMaxVolume(s):
     maxv = float(np.max(s))
     minv = float(np.min(s))
@@ -85,10 +291,6 @@ def copyFrame(inputFrame,outputFrame):
         print(str(outputFrame+1)+" new frames exported.")
     return True
 
-def inputToOutputFilename(filename):
-    dotIndex = filename.rfind(".")
-    return filename[:dotIndex]+"_MODIFIED"+filename[dotIndex:]
-
 def createPath(s):
     #assert (not os.path.exists(s)), "The filepath "+s+" already exists. Don't want to overwrite it. Aborting."
 
@@ -96,39 +298,6 @@ def createPath(s):
         os.mkdir(s)
     except OSError:  
         assert False, "Creation of the directory %s failed. (The folder may already exist. Delete or rename it, and try again.)"
-
-parser = argparse.ArgumentParser(description='Modifies a video file to play at different speeds when there is sound vs. silence.')
-parser.add_argument('--input_file', type=str,  help='the video file you want modified')
-parser.add_argument('--url', type=str, help='A YouTube URL to download and process')
-parser.add_argument('--output_file', type=str, default="", help="The output file. (optional. if not included, it'll just modify the input file name)")
-parser.add_argument('--silent_threshold', type=float, default=0.03, help="the volume amount that frames' audio needs to surpass to be consider \"sounded\". It ranges from 0 (silence) to 1 (max volume)")
-parser.add_argument('--sounded_speed', type=float, default=1.00, help="the speed that sounded (spoken) frames should be played at. Typically 1.")
-parser.add_argument('--silent_speed', type=float, default=5.00, help="the speed that silent frames should be played at. 999999 for jumpcutting.")
-parser.add_argument('--frame_margin', type=float, default=1, help="some silent frames adjacent to sounded frames are included to provide context. How many frames on either the side of speech should be included? That's this variable.")
-parser.add_argument('--sample_rate', type=float, default=44100, help="sample rate of the input and output videos")
-parser.add_argument('--frame_rate', type=float, default=30, help="frame rate of the input and output videos. optional... I try to find it out myself, but it doesn't always work.")
-parser.add_argument('--frame_quality', type=int, default=3, help="quality of frames to be extracted from input video. 1 is highest, 31 is lowest, 3 is the default.")
-
-args = parser.parse_args()
-
-frameRate = args.frame_rate
-SAMPLE_RATE = args.sample_rate
-SILENT_THRESHOLD = args.silent_threshold
-FRAME_SPREADAGE = args.frame_margin
-NEW_SPEED = [args.silent_speed, args.sounded_speed]
-if args.url != None:
-    INPUT_FILE = downloadFile(args.url)
-else:
-    INPUT_FILE = args.input_file
-URL = args.url
-FRAME_QUALITY = args.frame_quality
-
-assert INPUT_FILE != None , "Please specify an input file."
-    
-if len(args.output_file) >= 1:
-    OUTPUT_FILE = args.output_file
-else:
-    OUTPUT_FILE = inputToOutputFilename(INPUT_FILE)
 
 TEMP_FOLDER = "ORIGINAL_FRAMES"
 DESTINATION_FOLDER = "NEW_FRAMES"
