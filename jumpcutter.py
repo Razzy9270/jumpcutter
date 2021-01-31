@@ -29,14 +29,12 @@ class removeOriginalDirectory():
     dirpath = Path("ORIGINAL_FRAMES")
     time.sleep(2.5)
     if dirpath.exists() and dirpath.is_dir():
-        clear()
         print("Directory exists, removing old directory...")
         shutil.rmtree(dirpath)
         print("Removed old 'ORIGINAL_FRAMES' directory.")
         time.sleep(2.5)
         clear()
     else:
-        clear()
         print("'ORIGINAL_FRAMES' directory does not exist, creating a new one...")
         time.sleep(2.5)
         clear()
@@ -47,7 +45,6 @@ class removeNewDirectory():
     dirpath = Path("NEW_FRAMES")
     time.sleep(2.5)
     if dirpath.exists() and dirpath.is_dir():
-        clear()
         print("Directory exists, removing old directory...")
         shutil.rmtree(dirpath)
         os.mkdir("NEW_FRAMES")
@@ -55,7 +52,6 @@ class removeNewDirectory():
         time.sleep(2.5)
         clear()
     else:
-        clear()
         print("Creating 'NEW_FRAMES' directory...")
         os.mkdir("NEW_FRAMES")
         print("Created directory 'NEW_FRAMES'.")
@@ -236,12 +232,6 @@ for chunk in chunks:
     outputPointer = endPointer
 
 wavfile.write(TEMP_FOLDER+"/audioNew.wav",SAMPLE_RATE,outputAudioData)
-
-'''
-outputFrame = math.ceil(outputPointer/samplesPerFrame)
-for endGap in range(outputFrame,audioFrameCount):
-    copyFrame(int(audioSampleCount/samplesPerFrame)-1,endGap)
-'''
 
 command = "ffmpeg -framerate "+str(frameRate)+" -i "+ DESTINATION_FOLDER +"/newFrame%06d.jpg -i "+TEMP_FOLDER+"/audioNew.wav -strict -2 "+OUTPUT_FILE
 subprocess.call(command, shell=True)
