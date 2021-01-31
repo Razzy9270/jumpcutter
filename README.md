@@ -1,5 +1,7 @@
 # JumpCutter
 
+This is still work-in-progress.
+
 Automatically cuts out silent parts of videos.
 This is forked from the original JumpCutter made by **carykh**.
 
