@@ -114,7 +114,7 @@ class checkFrameMargin():
     clear()
     print("Step 7: Specify the frame margin.")
     print("How many frames on either the side of speech should be included?")
-    print("Default value is 3, minimum is 0, and maximum is 60.")
+    print("Default value is 3, minimum is 0.")
     print("\n")
 
 frameMargin = convertBlankToUnspecified(input(" > "))
@@ -177,8 +177,6 @@ def checkSilentSpeedInput():
 def checkFrameMarginInput():
     if frameMargin == "Unspecified":
         return 3
-    elif frameMargin > 60:
-        return 60
     else:
         return frameMargin
 
