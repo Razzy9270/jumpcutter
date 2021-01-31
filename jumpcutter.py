@@ -147,12 +147,12 @@ class checkFrameQuality():
 videoFrameQuality = convertBlankToUnspecified(input(" > "))
 
 def checkSilentThresholdInput():
-    if silentThreshold == "Unspeficied":
+    if silentThreshold == "Unspecified":
         return 0.05
-    elif silentThreshold < 0:
-        return 0
     elif silentThreshold > 1:
         return 1
+    else:
+        return silentThreshold
 
 def checkSoundedSpeedInput():
     if soundedSpeed == "Unspecified":
@@ -161,6 +161,8 @@ def checkSoundedSpeedInput():
         return 0.5
     elif soundedSpeed > 999999:
         return 999999
+    else:
+        return soundedSpeed
 
 def checkSilentSpeedInput():
     if silentSpeed == "Unspecified":
@@ -169,14 +171,16 @@ def checkSilentSpeedInput():
         return 0.5
     elif silentSpeed > 999999:
         return 999999
+    else:
+        return silentSpeed
 
 def checkFrameMarginInput():
     if frameMargin == "Unspecified":
         return 3
-    elif frameMargin < 0:
-        return 0
     elif frameMargin > 60:
         return 60
+    else:
+        return frameMargin
 
 def checkSampleRateInput():
     if videoSampleRate == "Unspecified":
@@ -185,6 +189,8 @@ def checkSampleRateInput():
         return 22050
     elif videoSampleRate > 48000:
         return 48000
+    else:
+        return videoSampleRate
 
 def checkFrameRateInput():
     if videoFrameRate == "Unspecified":
@@ -193,6 +199,8 @@ def checkFrameRateInput():
         return 1
     elif videoFrameRate > 60:
         return 60
+    else:
+        return videoFrameRate
 
 def checkFrameQualityInput():
     if videoFrameQuality == "Unspecified":
@@ -201,6 +209,8 @@ def checkFrameQualityInput():
         return 1
     elif videoFrameQuality > 31:
         return 31
+    else:
+        return videoFrameQuality
 
 frameRate = float(checkFrameRateInput())
 SAMPLE_RATE = float(checkSampleRateInput())
@@ -292,15 +302,13 @@ createPath(TEMP_FOLDER)
 command = "ffmpeg -i "+INPUT_FILE+" -qscale:v "+str(FRAME_QUALITY)+" "+TEMP_FOLDER+"/frame%06d.jpg -hide_banner"
 subprocess.call(command, shell=True)
 
-command = "ffmpeg -i "+INPUT_FILE+" -ab 160k -ac 2 -ar "+str(SAMPLE_RATE)+" -vn "+TEMP_FOLDER+"/audio.wav"
+command = "ffmpeg -i "+INPUT_FILE+" -ab 160k -ac 2 -ar "+str(checkSampleRateInput())+" -vn "+TEMP_FOLDER+"/audio.wav"
 
 subprocess.call(command, shell=True)
 
 command = "ffmpeg -i "+TEMP_FOLDER+"/input.mp4 2>&1"
 f = open(TEMP_FOLDER+"/params.txt", "w")
 subprocess.call(command, shell=True, stdout=f)
-
-
 
 sampleRate, audioData = wavfile.read(TEMP_FOLDER+"/audio.wav")
 audioSampleCount = audioData.shape[0]
@@ -321,8 +329,6 @@ audioFrameCount = int(math.ceil(audioSampleCount/samplesPerFrame))
 
 hasLoudAudio = np.zeros((audioFrameCount))
 
-
-
 for i in range(audioFrameCount):
     start = int(i*samplesPerFrame)
     end = min(int((i+1)*samplesPerFrame),audioSampleCount)
@@ -337,7 +343,7 @@ for i in range(audioFrameCount):
     start = int(max(0,i-FRAME_SPREADAGE))
     end = int(min(audioFrameCount,i+1+FRAME_SPREADAGE))
     shouldIncludeFrame[i] = np.max(hasLoudAudio[start:end])
-    if (i >= 1 and shouldIncludeFrame[i] != shouldIncludeFrame[i-1]): # Did we flip?
+    if (i >= 1 and shouldIncludeFrame[i] != shouldIncludeFrame[i-1]):
         chunks.append([chunks[-1][1],i,shouldIncludeFrame[i-1]])
 
 chunks.append([chunks[-1][1],audioFrameCount,shouldIncludeFrame[i-1]])
@@ -352,7 +358,7 @@ for chunk in chunks:
     
     sFile = TEMP_FOLDER+"/tempStart.wav"
     eFile = TEMP_FOLDER+"/tempEnd.wav"
-    wavfile.write(sFile,SAMPLE_RATE,audioChunk)
+    wavfile.write(sFile, int(checkSampleRateInput()), audioChunk)
     with WavReader(sFile) as reader:
         with WavWriter(eFile, reader.channels, reader.samplerate) as writer:
             tsm = phasevocoder(reader.channels, speed=NEW_SPEED[int(chunk[2])])
@@ -386,7 +392,7 @@ for chunk in chunks:
 
     outputPointer = endPointer
 
-wavfile.write(TEMP_FOLDER+"/audioNew.wav",SAMPLE_RATE,outputAudioData)
+wavfile.write(TEMP_FOLDER+"/audioNew.wav", int(checkSampleRateInput()), outputAudioData)
 
 command = "ffmpeg -framerate "+str(frameRate)+" -i "+ DESTINATION_FOLDER +"/newFrame%06d.jpg -i "+TEMP_FOLDER+"/audioNew.wav -strict -2 "+OUTPUT_FILE
 subprocess.call(command, shell=True)
