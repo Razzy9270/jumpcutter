@@ -38,18 +38,6 @@ def inputToOutputFilename(filename):
     dotIndex = filename.rfind(".")
     return filename[:dotIndex]+"_MODIFIED"+filename[dotIndex:]
 
-# frameRate = args.frame_rate
-# SAMPLE_RATE = args.sample_rate
-# SILENT_THRESHOLD = args.silent_threshold
-# FRAME_SPREADAGE = args.frame_margin
-# NEW_SPEED = [args.silent_speed, args.sounded_speed]
-# if args.url != None:
-#     INPUT_FILE = downloadFile(args.url)
-# else:
-#     INPUT_FILE = args.input_file
-# URL = args.url
-# FRAME_QUALITY = args.frame_quality
-
 class introductionMessage():
     clear()
     print("Welcome to JumpCutter!")
@@ -100,7 +88,7 @@ class checkSilentThreshold():
     print("\n")
 
 silentThresholdRaw = input(" > ")
-silentThreshold = int(silentThresholdRaw)
+silentThreshold = float(silentThresholdRaw)
 
 class checkSoundedSpeed():
     clear()
@@ -110,7 +98,7 @@ class checkSoundedSpeed():
     print("\n")
 
 soundedSpeedRaw = input(" > ")
-soundedSpeed = int(soundedSpeedRaw)
+soundedSpeed = float(soundedSpeedRaw)
 
 class checkSilentSpeed():
     clear()
@@ -120,7 +108,7 @@ class checkSilentSpeed():
     print("\n")
 
 silentSpeedRaw = input(" > ")
-silentSpeed = int(silentSpeedRaw)
+silentSpeed = float(silentSpeedRaw)
 
 class checkFrameMargin():
     clear()
