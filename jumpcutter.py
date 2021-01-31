@@ -17,7 +17,9 @@ from pytube import YouTube
 from pathlib import Path
 from PIL import Image
 
-def clear(): 
+# Forked repository of original jumpcutter
+
+def clear():
     if os.name == 'nt': 
         _ = os.system('cls') 
     else: 
