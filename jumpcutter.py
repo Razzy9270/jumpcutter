@@ -30,8 +30,9 @@ def convertBlankToUnspecified(string):
     return unspecified
 
 def downloadFile(url):
+    print("Downloading YouTube Video...")
     name = YouTube(url).streams.first().download()
-    newname = name.replace(' ','_')
+    newname = name.replace(" ", "_")
     os.rename(name, newname)
     print("Downloaded specified YouTube video.")
     print(f"Located in: {name}")
@@ -63,13 +64,16 @@ def checkSelection():
         clear()
         print("Step 2: Specify the input file to jumpcut; it must end with a '.mp4' at the end.")
         print("\n")
-        file = input(" > ")
-        return file
+        rawFileName = input(" > ")
+        newFileName = rawFileName.replace(" ", "_")
+        os.rename(rawFileName, newFileName)
+        return newFileName
     elif choice == "2":
         clear()
         print("Step 2: Specify the YouTube Video to jumpcut; this must be a URL.")
         print("\n")
         url = input(" > ")
+        clear()
         pathFile = downloadFile(url)
         return pathFile
 
