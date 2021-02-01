@@ -19,15 +19,15 @@ from PIL import Image
 
 # This is a forked version of the original JumpCutter made by carykh.
 
-def convertBlankToUnspecified(string):
-    unspecified = string.replace("", "Unspecified")
-    return unspecified
-
 def clear():
     if os.name == 'nt': 
         _ = os.system('cls') 
     else: 
         _ = os.system('clear')
+
+def convertBlankToUnspecified(string):
+    unspecified = string.replace("", "Unspecified")
+    return unspecified
 
 def downloadFile(url):
     name = YouTube(url).streams.first().download()
@@ -45,6 +45,7 @@ def inputToOutputFilename(filename):
 class introductionMessage():
     clear()
     print("Welcome to JumpCutter!")
+    print("Forked version made by Razzy9270, original version made by carykh.")
     print("You will have to specify a few things before continuing.")
     time.sleep(5)
 
@@ -60,7 +61,7 @@ choice = input("Choose an option: ")
 def checkSelection():
     if choice == "1":
         clear()
-        print("Step 2: Specify the input file to jumpcut; this must end with a '.mp4' at the end.")
+        print("Step 2: Specify the input file to jumpcut; it must end with a '.mp4' at the end.")
         print("\n")
         file = input(" > ")
         return file
@@ -77,7 +78,7 @@ selectionChoice = checkSelection()
 class chooseOutputFile():
     clear()
     print("Step 3: Specify the output file name.")
-    print("You can leave this blank if you want it to use the default '[INPUT FILE]_MODIFIED' name.")
+    print("You can leave this blank if you want it to use the default '[INPUT FILE]_MODIFIED' name; remember to put '.mp4' at the end.")
     print("\n")
 
 outputFile = input(" > ")
@@ -147,68 +148,68 @@ class checkFrameQuality():
 videoFrameQuality = convertBlankToUnspecified(input(" > "))
 
 def checkSilentThresholdInput():
-    if silentThreshold == "Unspecified":
-        return 0.05
-    elif silentThreshold > 1:
-        return 1
+    if str(silentThreshold) == "Unspecified":
+        return float(0.05)
+    elif float(silentThreshold.replace("Unspecified", "")) > 1:
+        return float(1)
     else:
-        return silentThreshold
+        return float(silentThreshold.replace("Unspecified", ""))
 
 def checkSoundedSpeedInput():
-    if soundedSpeed == "Unspecified":
-        return 1
-    elif soundedSpeed < 0.5:
-        return 0.5
-    elif soundedSpeed > 999999:
-        return 999999
+    if str(soundedSpeed) == "Unspecified":
+        return float(1)
+    elif float(soundedSpeed.replace("Unspecified", "")) < 0.5:
+        return float(0.5)
+    elif float(soundedSpeed.replace("Unspecified", "")) > 999999:
+        return float(999999)
     else:
-        return soundedSpeed
+        return float(soundedSpeed.replace("Unspecified", ""))
 
 def checkSilentSpeedInput():
-    if silentSpeed == "Unspecified":
-        return 5
-    elif silentSpeed < 0.5:
-        return 0.5
-    elif silentSpeed > 999999:
-        return 999999
+    if str(silentSpeed) == "Unspecified":
+        return float(5)
+    elif float(silentSpeed.replace("Unspecified", "")) < 0.5:
+        return float(0.5)
+    elif float(silentSpeed.replace("Unspecified", "")) > 999999:
+        return float(999999)
     else:
-        return silentSpeed
+        return float(silentSpeed.replace("Unspecified", ""))
 
 def checkFrameMarginInput():
-    if frameMargin == "Unspecified":
-        return 3
+    if str(frameMargin) == "Unspecified":
+        return int(3)
     else:
-        return frameMargin
+        return int(frameMargin.replace("Unspecified", ""))
 
 def checkSampleRateInput():
-    if videoSampleRate == "Unspecified":
-        return 44100
-    elif videoSampleRate < 22050:
-        return 22050
-    elif videoSampleRate > 48000:
-        return 48000
+    if str(videoSampleRate) == "Unspecified":
+        return int(44100)
+    elif int(videoSampleRate.replace("Unspecified", "")) < 22050:
+        return int(22050)
+    elif int(videoSampleRate.replace("Unspecified", "")) > 48000:
+        return int(48000)
     else:
-        return videoSampleRate
+        return int(videoSampleRate.replace("Unspecified", ""))
 
 def checkFrameRateInput():
-    if videoFrameRate == "Unspecified":
-        return 30
-    elif videoFrameRate < 1:
-        return 1
-    elif videoFrameRate > 60:
-        return 60
+    if str(videoFrameRate) == "Unspecified":
+        return int(30)
+    elif int(videoFrameRate.replace("Unspecified", "")) < 1:
+        return int(1)
+    elif int(videoFrameRate.replace("Unspecified", "")) > 60:
+        return int(60)
     else:
-        return videoFrameRate
+        return int(videoFrameRate.replace("Unspecified", ""))
 
 def checkFrameQualityInput():
-    if videoFrameQuality == "Unspecified":
-        return 3
-    elif videoFrameQuality < 1:
-        return 1
-    elif videoFrameQuality > 31:
-        return 31
+    if str(videoFrameQuality) == "Unspecified":
+        return int(3)
+    elif int(videoFrameQuality.replace("Unspecified", "")) < 1:
+        return int(1)
+    elif int(videoFrameQuality.replace("Unspecified", "")) > 31:
+        return int(31)
     else:
-        return videoFrameQuality
+        return int(videoFrameQuality.replace("Unspecified", ""))
 
 frameRate = float(checkFrameRateInput())
 SAMPLE_RATE = float(checkSampleRateInput())
@@ -244,9 +245,8 @@ class removeOriginalDirectory():
         time.sleep(2.5)
         clear()
     else:
-        print("'ORIGINAL_FRAMES' directory does not exist, creating a new one...")
+        print("'ORIGINAL_FRAMES' directory does not exist, will add a new one later.")
         time.sleep(2.5)
-        clear()
     
 class removeNewDirectory():
     clear()
