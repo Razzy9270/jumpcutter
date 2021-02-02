@@ -16,8 +16,16 @@ from scipy.io import wavfile
 from pytube import YouTube
 from pathlib import Path
 from PIL import Image
+from cv2 import cv2
 
 # This is a forked version of the original JumpCutter made by carykh.
+
+ORIGINAL_FRAMES_FOLDER_RAW = "ORIGINAL_FRAMES"
+NEW_FRAMES_FOLDER_RAW = "NEW_FRAMES"
+
+ORIGINAL_FRAMES_FOLDER = str(ORIGINAL_FRAMES_FOLDER_RAW)
+NEW_FRAMES_FOLDER = str(NEW_FRAMES_FOLDER_RAW)
+AUDIO_FADE_ENVELOPE_SIZE = 400
 
 def clear():
     if os.name == 'nt': 
@@ -41,7 +49,7 @@ def downloadFile(url):
 
 def inputToOutputFilename(filename):
     dotIndex = filename.rfind(".")
-    return filename[:dotIndex]+"_MODIFIED"+filename[dotIndex:]
+    return filename[:dotIndex] + "_MODIFIED" + filename[dotIndex:]
 
 class introductionMessage():
     clear()
@@ -133,23 +141,21 @@ class checkSampleRate():
 
 videoSampleRate = convertBlankToUnspecified(input(" > "))
 
-class checkFrameRate():
-    clear()
-    print("Step 9: Specify the frame rate.")
-    print("Specify the frame rate of the input and output videos.")
-    print("Default value is 30.")
-    print("\n")
-
-videoFrameRate = convertBlankToUnspecified(input(" > "))
-
 class checkFrameQuality():
     clear()
-    print("Step 10: Specify the frame quality.")
+    print("Step 9: Specify the frame quality.")
     print("Specify the quality of frames to be extracted from the input video.")
     print("Select a number from 1 (Highest quality) to 31 (Lowest quality); default value is 3.")
     print("\n")
 
 videoFrameQuality = convertBlankToUnspecified(input(" > "))
+
+def checkVideoFrameRate():
+    openCap = cv2.VideoCapture(str(selectionChoice))
+    mediaFrameRate = openCap.get(cv2.CAP_PROP_FPS)
+    return mediaFrameRate
+    
+videoFrameRate = float(checkVideoFrameRate())
 
 def checkSilentThresholdInput():
     if str(silentThreshold) == "Unspecified":
@@ -195,16 +201,6 @@ def checkSampleRateInput():
     else:
         return int(videoSampleRate.replace("Unspecified", ""))
 
-def checkFrameRateInput():
-    if str(videoFrameRate) == "Unspecified":
-        return int(30)
-    elif int(videoFrameRate.replace("Unspecified", "")) < 1:
-        return int(1)
-    elif int(videoFrameRate.replace("Unspecified", "")) > 60:
-        return int(60)
-    else:
-        return int(videoFrameRate.replace("Unspecified", ""))
-
 def checkFrameQualityInput():
     if str(videoFrameQuality) == "Unspecified":
         return int(3)
@@ -215,7 +211,7 @@ def checkFrameQualityInput():
     else:
         return int(videoFrameQuality.replace("Unspecified", ""))
 
-frameRate = float(checkFrameRateInput())
+frameRate = float(videoFrameRate)
 SAMPLE_RATE = float(checkSampleRateInput())
 SILENT_THRESHOLD = float(checkSilentThresholdInput())
 FRAME_SPREADAGE = float(checkFrameMarginInput())
@@ -223,7 +219,7 @@ NEW_SPEED = [float(checkSilentSpeedInput()), float(checkSoundedSpeedInput())]
 INPUT_FILE = str(selectionChoice)
 FRAME_QUALITY = int(checkFrameQualityInput())
 
-assert INPUT_FILE != None , "Please specify an input file."
+assert INPUT_FILE != None, "Please specify an input file."
     
 if len(outputFile) >= 1:
     OUTPUT_FILE = str(outputFile)
@@ -234,39 +230,47 @@ time.sleep(2.5)
 
 clear()
 
-print("You have finished setting up things.")
+print("You have finished setting up.")
 input("Press the ENTER key to start.")
 
 class removeOriginalDirectory():
     clear()
     print("Checking if the 'ORIGINAL_FRAMES' directory exists...")
-    dirpath = Path("ORIGINAL_FRAMES")
+    dirpath = Path(ORIGINAL_FRAMES_FOLDER)
     time.sleep(2.5)
     if dirpath.exists() and dirpath.is_dir():
         print("Directory exists, removing old directory...")
         shutil.rmtree(dirpath)
         print("Removed old 'ORIGINAL_FRAMES' directory.")
+        print("Creating new 'ORIGINAL_FRAMES' directory...")
+        os.mkdir(ORIGINAL_FRAMES_FOLDER)
+        print("Created new 'ORIGINAL_FRAMES' directory.")
         time.sleep(2.5)
         clear()
     else:
-        print("'ORIGINAL_FRAMES' directory does not exist, will add a new one later.")
+        print("Creating 'ORIGINAL_FRAMES' directory...")
+        os.mkdir(ORIGINAL_FRAMES_FOLDER)
+        print("Created directory 'ORIGINAL_FRAMES'.")
         time.sleep(2.5)
+        clear()
     
 class removeNewDirectory():
     clear()
     print("Checking for 'NEW_FRAMES' directory...")
-    dirpath = Path("NEW_FRAMES")
+    dirpath = Path(NEW_FRAMES_FOLDER)
     time.sleep(2.5)
     if dirpath.exists() and dirpath.is_dir():
         print("Directory exists, removing old directory...")
         shutil.rmtree(dirpath)
-        os.mkdir("NEW_FRAMES")
+        print("Removed old 'NEW_FRAMES' directory.")
+        print("Creating new 'NEW_FRAMES' directory...")
+        os.mkdir(NEW_FRAMES_FOLDER)
         print("Created new 'NEW_FRAMES' directory.")
         time.sleep(2.5)
         clear()
     else:
         print("Creating 'NEW_FRAMES' directory...")
-        os.mkdir("NEW_FRAMES")
+        os.mkdir(NEW_FRAMES_FOLDER)
         print("Created directory 'NEW_FRAMES'.")
         time.sleep(2.5)
         clear()
@@ -276,58 +280,44 @@ def getMaxVolume(s):
     minv = float(np.min(s))
     return max(maxv,-minv)
 
-def copyFrame(inputFrame,outputFrame):
-    src = TEMP_FOLDER + "/frame{:06d}".format(inputFrame+1) + ".jpg"
-    dst = DESTINATION_FOLDER + "/newFrame{:06d}".format(outputFrame+1) + ".jpg"
-    if not os.path.isfile(src):
+def copyFrame(inputFrame, outputFrame):
+    source_folder = ORIGINAL_FRAMES_FOLDER + "/frame{:06d}".format(inputFrame+1) + ".jpg"
+    destination_folder = NEW_FRAMES_FOLDER + "/newFrame{:06d}".format(outputFrame+1) + ".jpg"
+    if not os.path.isfile(source_folder):
         return False
-    copyfile(src, dst)
+    shutil.move(source_folder, destination_folder)
     if outputFrame%100 == 99:
         clear()
         print(str(outputFrame+1)+" new frames exported.")
     return True
 
-def createPath(s):
-    #assert (not os.path.exists(s)), "The filepath "+s+" already exists. Don't want to overwrite it. Aborting."
-
-    try:
-        os.mkdir(s)
-    except OSError:  
-        assert False, "Creation of the directory %s failed. (The folder may already exist. Delete or rename it, and try again.)"
-
-TEMP_FOLDER = "ORIGINAL_FRAMES"
-DESTINATION_FOLDER = "NEW_FRAMES"
-AUDIO_FADE_ENVELOPE_SIZE = 400 # smooth out transitiion's audio by quickly fading in/out (arbitrary magic number whatever)
-    
-createPath(TEMP_FOLDER)
-
-command = "ffmpeg -i "+INPUT_FILE+" -qscale:v "+str(FRAME_QUALITY)+" "+TEMP_FOLDER+"/frame%06d.jpg -hide_banner"
+command = "ffmpeg -i " + INPUT_FILE + " -qscale:v " + str(FRAME_QUALITY) + " " + ORIGINAL_FRAMES_FOLDER + "/frame%06d.jpg -hide_banner"
 subprocess.call(command, shell=True)
 
-command = "ffmpeg -i "+INPUT_FILE+" -ab 160k -ac 2 -ar "+str(checkSampleRateInput())+" -vn "+TEMP_FOLDER+"/audio.wav"
+command = "ffmpeg -i " + INPUT_FILE + " -ab 160k -ac 2 -ar " + str(checkSampleRateInput()) + " -vn " + ORIGINAL_FRAMES_FOLDER + "/audio.wav"
 
 subprocess.call(command, shell=True)
 
-command = "ffmpeg -i "+TEMP_FOLDER+"/input.mp4 2>&1"
-f = open(TEMP_FOLDER+"/params.txt", "w")
+command = "ffmpeg -i " + ORIGINAL_FRAMES_FOLDER + "/input.mp4 2>&1"
+f = open(ORIGINAL_FRAMES_FOLDER + "/params.txt", "w")
 subprocess.call(command, shell=True, stdout=f)
 
-sampleRate, audioData = wavfile.read(TEMP_FOLDER+"/audio.wav")
+sampleRate, audioData = wavfile.read(ORIGINAL_FRAMES_FOLDER + "/audio.wav")
 audioSampleCount = audioData.shape[0]
 maxAudioVolume = getMaxVolume(audioData)
 
-f = open(TEMP_FOLDER+"/params.txt", 'r+')
+f = open(ORIGINAL_FRAMES_FOLDER+"/params.txt", 'r+')
 pre_params = f.read()
 f.close()
 params = pre_params.split('\n')
 for line in params:
-    m = re.search('Stream #.*Video.* ([0-9]*) fps',line)
+    m = re.search('Stream #.*Video.* ([0-9]*) fps', line)
     if m is not None:
         frameRate = float(m.group(1))
 
-samplesPerFrame = sampleRate/frameRate
+samplesPerFrame = sampleRate / frameRate
 
-audioFrameCount = int(math.ceil(audioSampleCount/samplesPerFrame))
+audioFrameCount = int(math.ceil(audioSampleCount / samplesPerFrame))
 
 hasLoudAudio = np.zeros((audioFrameCount))
 
@@ -358,8 +348,8 @@ lastExistingFrame = None
 for chunk in chunks:
     audioChunk = audioData[int(chunk[0]*samplesPerFrame):int(chunk[1]*samplesPerFrame)]
     
-    sFile = TEMP_FOLDER+"/tempStart.wav"
-    eFile = TEMP_FOLDER+"/tempEnd.wav"
+    sFile = ORIGINAL_FRAMES_FOLDER + "/tempStart.wav"
+    eFile = ORIGINAL_FRAMES_FOLDER + "/tempEnd.wav"
     wavfile.write(sFile, int(checkSampleRateInput()), audioChunk)
     with WavReader(sFile) as reader:
         with WavWriter(eFile, reader.channels, reader.samplerate) as writer:
@@ -390,13 +380,15 @@ for chunk in chunks:
         if didItWork:
             lastExistingFrame = inputFrame
         else:
-            copyFrame(lastExistingFrame,outputFrame)
+            copyFrame(lastExistingFrame, outputFrame)
 
     outputPointer = endPointer
 
-wavfile.write(TEMP_FOLDER+"/audioNew.wav", int(checkSampleRateInput()), outputAudioData)
+wavfile.write(ORIGINAL_FRAMES_FOLDER + "/audioNew.wav", int(checkSampleRateInput()), outputAudioData)
 
-command = "ffmpeg -framerate "+str(frameRate)+" -i "+ DESTINATION_FOLDER +"/newFrame%06d.jpg -i "+TEMP_FOLDER+"/audioNew.wav -strict -2 "+OUTPUT_FILE
+clear()
+
+command = "ffmpeg -framerate " + str(frameRate) + " -i " + NEW_FRAMES_FOLDER + "/newFrame%06d.jpg -i " + ORIGINAL_FRAMES_FOLDER + "/audioNew.wav -strict -2 "+OUTPUT_FILE
 subprocess.call(command, shell=True)
 
 clear()
@@ -406,8 +398,8 @@ print("Deleting directories 'ORIGINAL_FRAMES' and 'NEW_FRAMES'...")
 
 time.sleep(1)
 
-shutil.rmtree(TEMP_FOLDER)
-shutil.rmtree(DESTINATION_FOLDER)
+shutil.rmtree(ORIGINAL_FRAMES_FOLDER)
+shutil.rmtree(NEW_FRAMES_FOLDER)
 
 print("Successfully deleted directories 'ORIGINAL_FRAMES' and 'NEW_FRAMES'.")
 
