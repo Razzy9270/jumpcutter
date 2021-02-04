@@ -1,5 +1,6 @@
-Pillow
+opencv-python
 audiotsm
+Pillow
+pytube
 scipy
 numpy
-pytube
