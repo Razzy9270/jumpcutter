@@ -13,6 +13,14 @@ It is strongly recommended to check the duriation of the video before attempting
 
 ## Requirements
 
-You will need **Python 3.7.3** and **ffmpeg** for this script to work, with a computer running **Windows 10**.
+### Python Script
 
-Other operating systems may work with this script, but they are currently **untested**.
+You will need **Python 3.7.3** and **FFmpeg** for this script to work.
+
+Other operating systems and Python versions have not been tested to work with this script, and they are **untested**.
+
+### Executable File
+
+You will need **FFmpeg** for the executable version to work, with a computer running **Windows 10**.
+
+Other Windows operating systems may or may not work with this script, and they are also **untested**.
