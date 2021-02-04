@@ -23,4 +23,4 @@ Other operating systems and Python versions have not been tested to work with th
 
 You will need **FFmpeg** for the executable version to work, with a computer running **Windows 10**.
 
-Other Windows operating systems may or may not work with this script, and they are also **untested**.
+Other Windows operating systems may or may not work with this, and they are also **untested**.
