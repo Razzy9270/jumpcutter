@@ -16,6 +16,3 @@ It is strongly recommended to check the duriation of the video before attempting
 You will need **Python 3.7.3** and **ffmpeg** for this script to work, with a computer running **Windows 10**.
 
 Other operating systems may work with this script, but they are currently **untested**.
-
-## Building with NIX
-`nix-build` to get a script with all the libraries and ffmpeg, `nix-build -A bundle` to get a single binary.
