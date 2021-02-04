@@ -11,6 +11,15 @@ This forked version of JumpCutter is designed to run more efficiently and jumpcu
 
 It is strongly recommended to check the duriation of the video before attempting to jumpcut. The longer the video, the more space it could take up, as it exports every frame in the video as a **.jpg** image file.
 
+## Download
+
+### Python Script
+Use `git clone https://github.com/Razzy9270/jumpcutter` to clone the repository to a folder.
+
+### Executable File
+You can download the executable version of the file ![here][https://github.com/Razzy9270/jumpcutter/releases].
+It is recommended that you download the latest version instead of the older versions.
+
 ## Requirements
 
 ### Python Script
