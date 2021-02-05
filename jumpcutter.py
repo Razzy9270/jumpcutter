@@ -279,7 +279,8 @@ def copyFrame(inputFrame, outputFrame):
     shutil.move(source_folder, destination_folder)
     if outputFrame%100 == 99:
         clear()
-        exportedModifiedFramesLength = round(int(outputFrame+1) / videoFrameRate)
+        exportedModifiedFramesRaw = round(int(outputFrame+1) / videoFrameRate)
+        exportedModifiedFramesLength = datetime.timedelta(seconds=exportedModifiedFramesRaw)
         print("Stage 2: Exporting new frames")
         print("=============================")
         print(f"Frames exported: {str(outputFrame+1)}")
@@ -431,16 +432,13 @@ wavfile.write(ORIGINAL_FRAMES_FOLDER + "/audioNew.wav", int(audioSampleRate), ou
 
 clear()
 
-startSegmentTime = time.time()
-
 print("Stage 3: Exporting modified video with new frames")
 print("=================================================")
-print(f"Elapsed time: {endSegmentTime - startSegmentTime}")
+print("Exporting modified video...")
+print("Please wait until the video exporting is finished.")
 
 command = "ffmpeg -framerate " + str(frameRate) + " -i " + NEW_FRAMES_FOLDER + "/newFrame%06d.jpg -i " + ORIGINAL_FRAMES_FOLDER + "/audioNew.wav -strict -2 "+OUTPUT_FILE
 subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-endSegmentTime = time.time()
 
 clear()
 
