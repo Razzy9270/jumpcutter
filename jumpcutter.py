@@ -1,6 +1,9 @@
 import numpy as np
 import subprocess
-import argparse
+import threading
+import datetime
+import fnmatch
+import tkinter
 import random
 import shutil
 import time
@@ -9,6 +12,7 @@ import os
 import re
 
 from audiotsm.io.wav import WavReader, WavWriter
+from videoprops import get_audio_properties
 from shutil import copyfile, rmtree
 from audiotsm import phasevocoder
 from contextlib import closing
@@ -132,18 +136,9 @@ class checkFrameMargin():
 
 frameMargin = convertBlankToUnspecified(input(" > "))
 
-class checkSampleRate():
-    clear()
-    print("Step 8: Specify the sample rate.")
-    print("Specify the sample rate of the input and output videos.")
-    print("Default value is 44100.")
-    print("\n")
-
-videoSampleRate = convertBlankToUnspecified(input(" > "))
-
 class checkFrameQuality():
     clear()
-    print("Step 9: Specify the frame quality.")
+    print("Step 8: Specify the frame quality.")
     print("Specify the quality of frames to be extracted from the input video.")
     print("Select a number from 1 (Highest quality) to 31 (Lowest quality); default value is 3.")
     print("\n")
@@ -156,6 +151,12 @@ def checkVideoFrameRate():
     return mediaFrameRate
     
 videoFrameRate = float(checkVideoFrameRate())
+
+def checkAudioSampleRate():
+    getAudioInformation = get_audio_properties(str(selectionChoice))
+    return getAudioInformation["sample_rate"]
+
+audioSampleRate = float(checkAudioSampleRate())
 
 def checkSilentThresholdInput():
     if str(silentThreshold) == "Unspecified":
@@ -191,16 +192,6 @@ def checkFrameMarginInput():
     else:
         return int(frameMargin.replace("Unspecified", ""))
 
-def checkSampleRateInput():
-    if str(videoSampleRate) == "Unspecified":
-        return int(44100)
-    elif int(videoSampleRate.replace("Unspecified", "")) < 22050:
-        return int(22050)
-    elif int(videoSampleRate.replace("Unspecified", "")) > 48000:
-        return int(48000)
-    else:
-        return int(videoSampleRate.replace("Unspecified", ""))
-
 def checkFrameQualityInput():
     if str(videoFrameQuality) == "Unspecified":
         return int(3)
@@ -212,7 +203,7 @@ def checkFrameQualityInput():
         return int(videoFrameQuality.replace("Unspecified", ""))
 
 frameRate = float(videoFrameRate)
-SAMPLE_RATE = float(checkSampleRateInput())
+SAMPLE_RATE = float(audioSampleRate)
 SILENT_THRESHOLD = float(checkSilentThresholdInput())
 FRAME_SPREADAGE = float(checkFrameMarginInput())
 NEW_SPEED = [float(checkSilentSpeedInput()), float(checkSoundedSpeedInput())]
@@ -288,15 +279,63 @@ def copyFrame(inputFrame, outputFrame):
     shutil.move(source_folder, destination_folder)
     if outputFrame%100 == 99:
         clear()
-        print(str(outputFrame+1)+" new frames exported.")
+        exportedModifiedFramesLength = round(int(outputFrame+1) / videoFrameRate)
+        print("Stage 2: Exporting new frames")
+        print("=============================")
+        print(f"Frames exported: {str(outputFrame+1)}")
+        print(f"Exported length: {exportedModifiedFramesLength}")
     return True
 
+def startFirstSegmentThread():
+    while True:
+        fileCapture = cv2.VideoCapture(str(selectionChoice))
+        directory = "ORIGINAL_FRAMES"
+
+        checkExportedFrameCount = len(fnmatch.filter(os.listdir(directory), '*.jpg'))
+        checkTotalFrameCount = int(fileCapture.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        progressRaw = checkExportedFrameCount / checkTotalFrameCount
+        progressPercentage = float(progressRaw) * 100
+
+        exportedFramesRaw = round(checkExportedFrameCount / videoFrameRate)
+        totalFramesRaw = round(checkTotalFrameCount / videoFrameRate)
+
+        exportedFramesLength = datetime.timedelta(seconds=exportedFramesRaw)
+        totalFramesLength = datetime.timedelta(seconds=totalFramesRaw)
+
+        clear()
+
+        print("Stage 1: Exporting input file frames into images")
+        print("================================================")
+        print(f"Export progress: {round(progressPercentage)}%")
+        print("Frames exported: {:,} / {:,}".format(int(checkExportedFrameCount), int(checkTotalFrameCount)))
+        print(f"Exported length: {exportedFramesLength} / {totalFramesLength}")
+        
+        global haltFirstSegmentCountingThread
+        if haltFirstSegmentCountingThread:
+            break
+
+        time.sleep(0.5)
+
+firstSegmentThread = threading.Thread(target=startFirstSegmentThread)
+firstSegmentThread.start()
+
+haltFirstSegmentCountingThread = False
+
 command = "ffmpeg -i " + INPUT_FILE + " -qscale:v " + str(FRAME_QUALITY) + " " + ORIGINAL_FRAMES_FOLDER + "/frame%06d.jpg -hide_banner"
-subprocess.call(command, shell=True)
+subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-command = "ffmpeg -i " + INPUT_FILE + " -ab 160k -ac 2 -ar " + str(checkSampleRateInput()) + " -vn " + ORIGINAL_FRAMES_FOLDER + "/audio.wav"
+haltFirstSegmentCountingThread = True
+firstSegmentThread.join()
 
-subprocess.call(command, shell=True)
+clear()
+
+print("Exporting input file's audio...")
+
+command = "ffmpeg -i " + INPUT_FILE + " -ab 160k -ac 2 -ar " + str(audioSampleRate) + " -vn " + ORIGINAL_FRAMES_FOLDER + "/audio.wav"
+subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+clear()
 
 command = "ffmpeg -i " + ORIGINAL_FRAMES_FOLDER + "/input.mp4 2>&1"
 f = open(ORIGINAL_FRAMES_FOLDER + "/params.txt", "w")
@@ -306,7 +345,7 @@ sampleRate, audioData = wavfile.read(ORIGINAL_FRAMES_FOLDER + "/audio.wav")
 audioSampleCount = audioData.shape[0]
 maxAudioVolume = getMaxVolume(audioData)
 
-f = open(ORIGINAL_FRAMES_FOLDER+"/params.txt", 'r+')
+f = open(ORIGINAL_FRAMES_FOLDER + "/params.txt", 'r+')
 pre_params = f.read()
 f.close()
 params = pre_params.split('\n')
@@ -329,7 +368,7 @@ for i in range(audioFrameCount):
     if maxchunksVolume >= SILENT_THRESHOLD:
         hasLoudAudio[i] = 1
 
-chunks = [[0,0,0]]
+chunks = [[0, 0, 0]]
 shouldIncludeFrame = np.zeros((audioFrameCount))
 for i in range(audioFrameCount):
     start = int(max(0,i-FRAME_SPREADAGE))
@@ -350,7 +389,7 @@ for chunk in chunks:
     
     sFile = ORIGINAL_FRAMES_FOLDER + "/tempStart.wav"
     eFile = ORIGINAL_FRAMES_FOLDER + "/tempEnd.wav"
-    wavfile.write(sFile, int(checkSampleRateInput()), audioChunk)
+    wavfile.write(sFile, int(audioSampleRate), audioChunk)
     with WavReader(sFile) as reader:
         with WavWriter(eFile, reader.channels, reader.samplerate) as writer:
             tsm = phasevocoder(reader.channels, speed=NEW_SPEED[int(chunk[2])])
@@ -367,9 +406,9 @@ for chunk in chunks:
     if leng < AUDIO_FADE_ENVELOPE_SIZE:
         outputAudioData[outputPointer:endPointer] = 0 # audio is less than 0.01 sec, let's just remove it.
     else:
-        premask = np.arange(AUDIO_FADE_ENVELOPE_SIZE)/AUDIO_FADE_ENVELOPE_SIZE
+        premask = np.arange(AUDIO_FADE_ENVELOPE_SIZE) / AUDIO_FADE_ENVELOPE_SIZE
         mask = np.repeat(premask[:, np.newaxis],2,axis=1) # make the fade-envelope mask stereo
-        outputAudioData[outputPointer:outputPointer+AUDIO_FADE_ENVELOPE_SIZE] *= mask
+        outputAudioData[outputPointer:outputPointer + AUDIO_FADE_ENVELOPE_SIZE] *= mask
         outputAudioData[endPointer-AUDIO_FADE_ENVELOPE_SIZE:endPointer] *= 1-mask
 
     startOutputFrame = int(math.ceil(outputPointer/samplesPerFrame))
@@ -384,12 +423,24 @@ for chunk in chunks:
 
     outputPointer = endPointer
 
-wavfile.write(ORIGINAL_FRAMES_FOLDER + "/audioNew.wav", int(checkSampleRateInput()), outputAudioData)
+clear()
+
+print("Creating modified audio file...")
+
+wavfile.write(ORIGINAL_FRAMES_FOLDER + "/audioNew.wav", int(audioSampleRate), outputAudioData)
 
 clear()
 
+startSegmentTime = time.time()
+
+print("Stage 3: Exporting modified video with new frames")
+print("=================================================")
+print(f"Elapsed time: {endSegmentTime - startSegmentTime}")
+
 command = "ffmpeg -framerate " + str(frameRate) + " -i " + NEW_FRAMES_FOLDER + "/newFrame%06d.jpg -i " + ORIGINAL_FRAMES_FOLDER + "/audioNew.wav -strict -2 "+OUTPUT_FILE
-subprocess.call(command, shell=True)
+subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+endSegmentTime = time.time()
 
 clear()
 
