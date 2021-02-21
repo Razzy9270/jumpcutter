@@ -3,7 +3,6 @@ import subprocess
 import threading
 import datetime
 import fnmatch
-import tkinter
 import random
 import shutil
 import time
@@ -12,7 +11,6 @@ import os
 import re
 
 from audiotsm.io.wav import WavReader, WavWriter
-from videoprops import get_audio_properties
 from shutil import copyfile, rmtree
 from audiotsm import phasevocoder
 from contextlib import closing
@@ -27,8 +25,8 @@ from cv2 import cv2
 ORIGINAL_FRAMES_FOLDER_RAW = "ORIGINAL_FRAMES"
 NEW_FRAMES_FOLDER_RAW = "NEW_FRAMES"
 
-ORIGINAL_FRAMES_FOLDER = str(ORIGINAL_FRAMES_FOLDER_RAW)
-NEW_FRAMES_FOLDER = str(NEW_FRAMES_FOLDER_RAW)
+ORIGINAL_FRAMES_FOLDER = os.path.abspath(ORIGINAL_FRAMES_FOLDER_RAW)
+NEW_FRAMES_FOLDER = os.path.abspath(NEW_FRAMES_FOLDER_RAW)
 AUDIO_FADE_ENVELOPE_SIZE = 400
 
 def clear():
@@ -79,7 +77,8 @@ def checkSelection():
         rawFileName = input(" > ")
         newFileName = rawFileName.replace(" ", "_")
         os.rename(rawFileName, newFileName)
-        return newFileName
+        pathFile = os.path.abspath(str(newFileName))
+        return str(pathFile)
     elif choice == "2":
         clear()
         print("Step 2: Specify the YouTube Video to jumpcut; this must be a URL.")
@@ -87,7 +86,7 @@ def checkSelection():
         url = input(" > ")
         clear()
         pathFile = downloadFile(url)
-        return pathFile
+        return str(pathFile)
 
 selectionChoice = checkSelection()
 
@@ -153,8 +152,7 @@ def checkVideoFrameRate():
 videoFrameRate = float(checkVideoFrameRate())
 
 def checkAudioSampleRate():
-    getAudioInformation = get_audio_properties(str(selectionChoice))
-    return getAudioInformation["sample_rate"]
+    return int(48000)
 
 audioSampleRate = float(checkAudioSampleRate())
 
@@ -272,12 +270,12 @@ def getMaxVolume(s):
     return max(maxv,-minv)
 
 def copyFrame(inputFrame, outputFrame):
-    source_folder = ORIGINAL_FRAMES_FOLDER + "/frame{:06d}".format(inputFrame+1) + ".jpg"
-    destination_folder = NEW_FRAMES_FOLDER + "/newFrame{:06d}".format(outputFrame+1) + ".jpg"
+    source_folder = "{0}/frame{:06d}.jpg".format(ORIGINAL_FRAMES_FOLDER, inputFrame+1)
+    destination_folder = "{0}/newFrame{:06d}.jpg".format(NEW_FRAMES_FOLDER, outputFrame+1)
     if not os.path.isfile(source_folder):
         return False
     shutil.move(source_folder, destination_folder)
-    if outputFrame%100 == 99:
+    if outputFrame%50 == 49:
         clear()
         exportedModifiedFramesRaw = round(int(outputFrame+1) / videoFrameRate)
         exportedModifiedFramesLength = datetime.timedelta(seconds=exportedModifiedFramesRaw)
@@ -287,10 +285,19 @@ def copyFrame(inputFrame, outputFrame):
         print(f"Exported length: {exportedModifiedFramesLength}")
     return True
 
+print("Exporting input file's audio...")
+
+command = 'ffmpeg -i "{0}" -ab 160k -ac 2 -ar {1} -vn "{2}/audio.wav"'.format(INPUT_FILE, int(audioSampleRate), ORIGINAL_FRAMES_FOLDER)
+subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+clear()
+
 def startFirstSegmentThread():
     while True:
         fileCapture = cv2.VideoCapture(str(selectionChoice))
-        directory = "ORIGINAL_FRAMES"
+
+        directoryRaw = "ORIGINAL_FRAMES"
+        directory = str(os.path.abspath(directoryRaw))
 
         checkExportedFrameCount = len(fnmatch.filter(os.listdir(directory), '*.jpg'))
         checkTotalFrameCount = int(fileCapture.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -304,49 +311,46 @@ def startFirstSegmentThread():
         exportedFramesLength = datetime.timedelta(seconds=exportedFramesRaw)
         totalFramesLength = datetime.timedelta(seconds=totalFramesRaw)
 
-        clear()
-
-        print("Stage 1: Exporting input file frames into images")
-        print("================================================")
-        print(f"Export progress: {round(progressPercentage)}%")
-        print("Frames exported: {:,} / {:,}".format(int(checkExportedFrameCount), int(checkTotalFrameCount)))
-        print(f"Exported length: {exportedFramesLength} / {totalFramesLength}")
-        
         global haltFirstSegmentCountingThread
+
         if haltFirstSegmentCountingThread:
             break
-
-        time.sleep(0.5)
+        elif int(checkExportedFrameCount)%50 == 49:
+            clear()
+            print("Stage 1: Exporting input file frames into images")
+            print("================================================")
+            print(f"Export progress: {round(progressPercentage)}%")
+            print("Frames exported: {:,} / {:,}".format(int(checkExportedFrameCount) + 1, int(checkTotalFrameCount)))
+            print(f"Exported length: {exportedFramesLength} / {totalFramesLength}")
 
 firstSegmentThread = threading.Thread(target=startFirstSegmentThread)
 firstSegmentThread.start()
 
 haltFirstSegmentCountingThread = False
 
-command = "ffmpeg -i " + INPUT_FILE + " -qscale:v " + str(FRAME_QUALITY) + " " + ORIGINAL_FRAMES_FOLDER + "/frame%06d.jpg -hide_banner"
+command = 'ffmpeg -i "{0}" -qscale:v {1} "{2}/frame%06d.jpg" -hide_banner'.format(INPUT_FILE, str(FRAME_QUALITY), ORIGINAL_FRAMES_FOLDER)
 subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 haltFirstSegmentCountingThread = True
 firstSegmentThread.join()
 
+checkExportedFrameCount = len(fnmatch.filter(os.listdir(ORIGINAL_FRAMES_FOLDER), '*.jpg'))
+
+writeInputFileFrameCount = open(f"{ORIGINAL_FRAMES_FOLDER}/totalFrameCount.txt", "w+")
+writeInputFileFrameCount.write(f"{checkExportedFrameCount}")
+writeInputFileFrameCount.close()
+
 clear()
 
-print("Exporting input file's audio...")
-
-command = "ffmpeg -i " + INPUT_FILE + " -ab 160k -ac 2 -ar " + str(audioSampleRate) + " -vn " + ORIGINAL_FRAMES_FOLDER + "/audio.wav"
-subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-clear()
-
-command = "ffmpeg -i " + ORIGINAL_FRAMES_FOLDER + "/input.mp4 2>&1"
+command = f'ffmpeg -i "{ORIGINAL_FRAMES_FOLDER}/input.mp4" 2>&1'
 f = open(ORIGINAL_FRAMES_FOLDER + "/params.txt", "w")
 subprocess.call(command, shell=True, stdout=f)
 
-sampleRate, audioData = wavfile.read(ORIGINAL_FRAMES_FOLDER + "/audio.wav")
+sampleRate, audioData = wavfile.read(f"{ORIGINAL_FRAMES_FOLDER}/audio.wav")
 audioSampleCount = audioData.shape[0]
 maxAudioVolume = getMaxVolume(audioData)
 
-f = open(ORIGINAL_FRAMES_FOLDER + "/params.txt", 'r+')
+f = open(f"{ORIGINAL_FRAMES_FOLDER}/params.txt", 'r+')
 pre_params = f.read()
 f.close()
 params = pre_params.split('\n')
@@ -428,16 +432,36 @@ clear()
 
 print("Creating modified audio file...")
 
-wavfile.write(ORIGINAL_FRAMES_FOLDER + "/audioNew.wav", int(audioSampleRate), outputAudioData)
+wavfile.write(f"{ORIGINAL_FRAMES_FOLDER}/audioNew.wav", int(audioSampleRate), outputAudioData)
 
 clear()
+
+checkUnmodifiedExportedFrameCount = len(fnmatch.filter(os.listdir(ORIGINAL_FRAMES_FOLDER), '*.jpg'))
+checkModifiedExportedFrameCount = len(fnmatch.filter(os.listdir(NEW_FRAMES_FOLDER), '*.jpg'))
+
+checkInputFileFrameCount = open(f"{ORIGINAL_FRAMES_FOLDER}/totalFrameCount.txt", "r")
+
+improvementPercentageRaw = checkModifiedExportedFrameCount / int(checkInputFileFrameCount.read())
+improvementPercentageOne = float(improvementPercentageRaw) * 100
+improvementPercentageFinal = 100 - int(improvementPercentageOne)
+
+modifiedVideoLengthRaw = round(checkModifiedExportedFrameCount / videoFrameRate)
+unusedFramesLengthRaw = round(checkUnmodifiedExportedFrameCount / videoFrameRate)
+
+modifiedVideoLength = datetime.timedelta(seconds=modifiedVideoLengthRaw)
+unusedFramesLength = datetime.timedelta(seconds=unusedFramesLengthRaw)
 
 print("Stage 3: Exporting modified video with new frames")
 print("=================================================")
 print("Exporting modified video...")
 print("Please wait until the video exporting is finished.")
+print("=================================================")
+print("Technical information:")
+print(f"Used frames: {checkModifiedExportedFrameCount} [{modifiedVideoLength}]")
+print(f"Unused frames: {checkUnmodifiedExportedFrameCount} [{unusedFramesLength}]")
+print(f"Improved video by: {improvementPercentageFinal}%")
 
-command = "ffmpeg -framerate " + str(frameRate) + " -i " + NEW_FRAMES_FOLDER + "/newFrame%06d.jpg -i " + ORIGINAL_FRAMES_FOLDER + "/audioNew.wav -strict -2 "+OUTPUT_FILE
+command = 'ffmpeg -framerate {0} -i "{1}/newFrame%06d.jpg" -i "{2}/audioNew.wav" -strict -2 "{3}"'.format(str(frameRate), NEW_FRAMES_FOLDER, ORIGINAL_FRAMES_FOLDER, OUTPUT_FILE)
 subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 clear()
