@@ -270,8 +270,8 @@ def getMaxVolume(s):
     return max(maxv,-minv)
 
 def copyFrame(inputFrame, outputFrame):
-    source_folder = "{0}/frame{:06d}.jpg".format(ORIGINAL_FRAMES_FOLDER, inputFrame+1)
-    destination_folder = "{0}/newFrame{:06d}.jpg".format(NEW_FRAMES_FOLDER, outputFrame+1)
+    source_folder = "{0}".format(ORIGINAL_FRAMES_FOLDER) + "/frame{:06d}.jpg".format(inputFrame+1)
+    destination_folder = "{0}".format(NEW_FRAMES_FOLDER) + "/newFrame{:06d}.jpg".format(outputFrame+1)
     if not os.path.isfile(source_folder):
         return False
     shutil.move(source_folder, destination_folder)
@@ -463,6 +463,8 @@ print(f"Improved video by: {improvementPercentageFinal}%")
 
 command = 'ffmpeg -framerate {0} -i "{1}/newFrame%06d.jpg" -i "{2}/audioNew.wav" -strict -2 "{3}"'.format(str(frameRate), NEW_FRAMES_FOLDER, ORIGINAL_FRAMES_FOLDER, OUTPUT_FILE)
 subprocess.call(command, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+checkInputFileFrameCount.close()
 
 clear()
 
