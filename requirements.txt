@@ -1,4 +1,3 @@
-get-video-properties
 opencv-python
 audiotsm
 Pillow
